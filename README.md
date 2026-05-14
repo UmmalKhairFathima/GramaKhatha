@@ -1,6 +1,6 @@
-# Namma Santhe Ledger
+# Gramakhata
 
-Namma Santhe Ledger is an Android application designed for small vendors, shop owners, and local market sellers to manage daily customer transactions digitally.
+Gramakhata is an Android application designed for small vendors, shop owners, and local market sellers to manage daily customer transactions digitally.
 
 The app helps users record customer names, transaction amounts, payment history, reminders, and profile details in a simple and organized way. It reduces manual bookkeeping and improves efficiency.
 

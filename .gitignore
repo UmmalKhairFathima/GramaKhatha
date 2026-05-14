@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+node_modules/
+.expo/
+.expo-export-check/
+expo-*.log

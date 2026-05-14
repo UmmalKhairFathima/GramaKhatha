@@ -6,6 +6,7 @@ import android.telephony.SmsManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.nammasantheledger.data.AppDatabase
+import java.util.Locale
 
 class WeeklyReminderWorker(
     context: Context,
@@ -15,24 +16,20 @@ class WeeklyReminderWorker(
     override fun doWork(): Result {
         return try {
             val db = AppDatabase.getDatabase(applicationContext)
-            val allTransactions = db.transactionDao().getAll()
+            // Get customers with positive balance (debtors)
+            val debtors = db.transactionDao().getDebtorsSync()
 
-            // Group transactions by customer name
-            val customerGroups = allTransactions.groupBy { it.customerName }
+            val prefs = applicationContext.getSharedPreferences("ProfilePrefs", Context.MODE_PRIVATE)
+            val shopName = prefs.getString("shopName", "Grama-Khata") ?: "Grama-Khata"
 
-            // Get shop name for the message
-            val prefs    = applicationContext.getSharedPreferences("ProfilePrefs", Context.MODE_PRIVATE)
-            val shopName = prefs.getString("shopName", "Namma Santhe") ?: "Namma Santhe"
-
-            customerGroups.forEach { (name, txList) ->
-                val phone = txList.firstOrNull { it.phoneNumber.isNotEmpty() }?.phoneNumber
-                val total = txList.sumOf { it.amount }
-
-                if (!phone.isNullOrEmpty()) {
-                    val message = "Dear $name, your total credit amount at $shopName " +
-                            "is ₹${String.format("%.2f", total)}. " +
-                            "Kindly clear your dues. Thank you!"
-                    sendSms(phone, message)
+            debtors.forEach { customer ->
+                if (!customer.phoneNumber.isNullOrEmpty()) {
+                    val message = applicationContext.getString(
+                        R.string.reminder_message,
+                        shopName,
+                        customer.balance
+                    )
+                    sendSms(customer.phoneNumber, message)
                 }
             }
 

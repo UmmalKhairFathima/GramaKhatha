@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Gramakhata",
+    "owner": "srujan0610",
+    "slug": "gramakhata",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "gramakhata",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.example.nammasantheledger"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "95774f01-fce8-42a0-ab8d-8e4c02579a56"
+      }
+    }
+  }
+}

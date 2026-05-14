@@ -4,13 +4,15 @@
 
     <item
         android:id="@+id/menu_profile"
+        android:icon="@android:drawable/ic_menu_myplaces"
         android:title="👤 My Profile"
-        app:showAsAction="never"/>
+        app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/menu_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
         android:title="⚙️ Settings"
-        app:showAsAction="never"/>
+        app:showAsAction="always"/>
 
     <item
         android:id="@+id/menu_logout"

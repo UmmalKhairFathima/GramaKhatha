@@ -4,163 +4,122 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.*
+import android.text.InputType
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.*
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.nammasantheledger.data.AppDatabase
-import com.example.nammasantheledger.data.Transaction
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.Executors
-
-class TransactionAdapter(context: Context, private val items: List<Transaction>) :
-    ArrayAdapter<Transaction>(context, 0, items) {
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val view = convertView ?: LayoutInflater.from(context)
-            .inflate(R.layout.list_item_transaction, parent, false)
-        val item = items[position]
-        view.findViewById<TextView>(R.id.avatarText).text =
-            item.customerName.first().uppercaseChar().toString()
-        view.findViewById<TextView>(R.id.customerNameText).text = item.customerName
-        view.findViewById<TextView>(R.id.phoneNumberText).text =
-            if (item.phoneNumber.isEmpty()) "No phone" else item.phoneNumber
-        view.findViewById<TextView>(R.id.timestampText).text = item.timestamp
-        view.findViewById<TextView>(R.id.amountText).text =
-            "₹${String.format("%.2f", item.amount)}"
-        return view
-    }
-}
+import com.google.android.material.appbar.MaterialToolbar
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
-    private val transactions = ArrayList<Transaction>()
-    private var adapter: TransactionAdapter? = null
-    private val executor = Executors.newSingleThreadExecutor()
-    private lateinit var db: AppDatabase
-    private lateinit var totalTransactionsTv: TextView
-    private lateinit var totalAmountTv: TextView
+    private val viewModel: GramaViewModel by viewModels()
+    private lateinit var adapter: CustomerAdapter
+    private lateinit var totalNetDueTv: TextView
+    private var currentShopName: String = "Gramakhata"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        db = AppDatabase.getDatabase(this)
+        // Setup Toolbar
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
-        val customerNameInput = findViewById<EditText>(R.id.customerName)
-        val phoneInput        = findViewById<EditText>(R.id.phoneNumber)
-        val amountInput       = findViewById<EditText>(R.id.amount)
-        val addButton         = findViewById<Button>(R.id.addButton)
-        val historyList       = findViewById<ListView>(R.id.historyList)
-        totalTransactionsTv   = findViewById(R.id.totalTransactions)
-        totalAmountTv         = findViewById(R.id.totalAmount)
-        val dateText          = findViewById<TextView>(R.id.dateText)
-        val clearAll          = findViewById<TextView>(R.id.clearAll)
+        totalNetDueTv = findViewById(R.id.totalNetDue)
+        val customerList = findViewById<ListView>(R.id.customerList)
+        val btnTake = findViewById<Button>(R.id.btnTake)
+        val btnGive = findViewById<Button>(R.id.btnGive)
+        val btnReport = findViewById<Button>(R.id.btnReport)
 
-        // Load profile shop name into header
         val profilePrefs = getSharedPreferences("ProfilePrefs", Context.MODE_PRIVATE)
-        val shopNameTv   = findViewById<TextView>(R.id.shopNameHeader)
-        shopNameTv.text  = profilePrefs.getString("shopName", "Namma Santhe Ledger") ?: "Namma Santhe Ledger"
+        currentShopName = profilePrefs.getString("shopName", "Gramakhata") ?: "Gramakhata"
+        findViewById<TextView>(R.id.shopNameSubtitle).text = "Shop: $currentShopName"
 
-        dateText.text = SimpleDateFormat("EEEE, dd MMM yyyy", Locale.getDefault()).format(Date())
+        // Setup Adapter
+        adapter = CustomerAdapter(this, currentShopName, emptyList())
+        customerList.adapter = adapter
 
-        loadTransactions()
-        adapter = TransactionAdapter(this, transactions)
-        historyList.adapter = adapter
-
-        // ── Add Transaction ──────────────────────────────────────────────────
-        addButton.setOnClickListener {
-            val name   = customerNameInput.text.toString().trim()
-            val phone  = phoneInput.text.toString().trim()
-            val amtStr = amountInput.text.toString().trim()
-
-            if (name.isEmpty() || amtStr.isEmpty()) {
-                Toast.makeText(this, "Name and amount are required", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val amount = amtStr.toDoubleOrNull()
-            if (amount == null || amount <= 0) {
-                Toast.makeText(this, "Enter a valid amount", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val timestamp   = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
-            val transaction = Transaction(customerName = name, phoneNumber = phone, amount = amount, timestamp = timestamp)
-
-            executor.execute {
-                db.transactionDao().insert(transaction)
-                val all = db.transactionDao().getAll()
-                runOnUiThread {
-                    transactions.clear()
-                    transactions.addAll(all)
-                    adapter!!.notifyDataSetChanged()
-                    updateSummary()
-                    customerNameInput.setText("")
-                    phoneInput.setText("")
-                    amountInput.setText("")
-                    Toast.makeText(this, "✅ Transaction saved!", Toast.LENGTH_SHORT).show()
-                }
-            }
+        // Observe Data
+        viewModel.customerBalances.observe(this) { balances ->
+            adapter = CustomerAdapter(this, currentShopName, balances)
+            customerList.adapter = adapter
         }
 
-        // ── Long Press to Delete ─────────────────────────────────────────────
-        historyList.setOnItemLongClickListener { _, _, position, _ ->
-            val t = transactions[position]
-            AlertDialog.Builder(this)
-                .setTitle("🗑️ Delete Transaction")
-                .setMessage("Delete ${t.customerName}'s entry of ₹${String.format("%.2f", t.amount)}?")
-                .setPositiveButton("Delete") { _, _ ->
-                    executor.execute {
-                        db.transactionDao().delete(t)
-                        val all = db.transactionDao().getAll()
-                        runOnUiThread {
-                            transactions.clear()
-                            transactions.addAll(all)
-                            adapter!!.notifyDataSetChanged()
-                            updateSummary()
-                            Toast.makeText(this, "Deleted!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-            true
+        viewModel.totalNetDue.observe(this) { total ->
+            totalNetDueTv.text = String.format(Locale.getDefault(), "₹%.2f", total ?: 0.0)
         }
 
-        // ── Clear All ────────────────────────────────────────────────────────
-        clearAll.setOnClickListener {
-            if (transactions.isEmpty()) {
-                Toast.makeText(this, "Nothing to clear", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            AlertDialog.Builder(this)
-                .setTitle("⚠️ Clear All")
-                .setMessage("Delete all ${transactions.size} transactions?")
-                .setPositiveButton("Clear All") { _, _ ->
-                    executor.execute {
-                        db.transactionDao().deleteAll()
-                        runOnUiThread {
-                            transactions.clear()
-                            adapter!!.notifyDataSetChanged()
-                            updateSummary()
-                        }
-                    }
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+        // Bottom Actions (One-handed usability)
+        btnGive.setOnClickListener { showAddTransactionDialog("GIVE") }
+        btnTake.setOnClickListener { showAddTransactionDialog("TAKE") }
+
+        btnReport.setOnClickListener {
+            val report = viewModel.generateDailyReport()
+            showReportDialog(report)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Refresh shop name if profile was updated
-        val profilePrefs = getSharedPreferences("ProfilePrefs", Context.MODE_PRIVATE)
-        findViewById<TextView>(R.id.shopNameHeader).text =
-            profilePrefs.getString("shopName", "Namma Santhe Ledger")
+    private fun showAddTransactionDialog(type: String) {
+        val builder = AlertDialog.Builder(this)
+        val title = if (type == "GIVE") "Add Debt (ಸಾಲ ಕೊಡು)" else "Receive Payment (ಹಣ ಪಾವತಿ)"
+        builder.setTitle(title)
+
+        val layout = LinearLayout(this)
+        layout.orientation = LinearLayout.VERTICAL
+        layout.setPadding(60, 40, 60, 10)
+
+        val nameInput = EditText(this)
+        nameInput.hint = "Customer Name (ಹೆಸರು)"
+        layout.addView(nameInput)
+
+        val amountInput = EditText(this)
+        amountInput.hint = "Amount ₹ (ಹಣ)"
+        amountInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        layout.addView(amountInput)
+
+        val phoneInput = EditText(this)
+        phoneInput.hint = "Phone / WhatsApp (Optional)"
+        phoneInput.inputType = InputType.TYPE_CLASS_PHONE
+        layout.addView(phoneInput)
+
+        builder.setView(layout)
+
+        builder.setPositiveButton("Save") { _, _ ->
+            val name = nameInput.text.toString().trim()
+            val amountStr = amountInput.text.toString().trim()
+            val phone = phoneInput.text.toString().trim()
+
+            if (name.isNotEmpty() && amountStr.isNotEmpty()) {
+                val amount = amountStr.toDoubleOrNull() ?: 0.0
+                viewModel.addTransaction(name, amount, type, phone)
+                Toast.makeText(this, "✅ Saved!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Name and Amount required", Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.setNegativeButton("Cancel", null)
+        builder.show()
     }
 
-    // ── Options Menu (3-dot) ─────────────────────────────────────────────────
+    private fun showReportDialog(report: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Daily Collection Report")
+            .setMessage(report)
+            .setPositiveButton("Share Text") { _, _ ->
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, report)
+                    type = "text/plain"
+                }
+                startActivity(Intent.createChooser(sendIntent, "Share Report via"))
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
@@ -177,37 +136,21 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.menu_logout -> {
-                AlertDialog.Builder(this)
-                    .setTitle("Logout")
-                    .setMessage("Are you sure you want to logout?")
-                    .setPositiveButton("Logout") { _, _ ->
-                        getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
-                            .edit().putBoolean("isLoggedIn", false).apply()
-                        startActivity(Intent(this, LoginActivity::class.java))
-                        finish()
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
+                getSharedPreferences("LoginPrefs", Context.MODE_PRIVATE)
+                    .edit().putBoolean("isLoggedIn", false).apply()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    private fun loadTransactions() {
-        executor.execute {
-            val all = db.transactionDao().getAll()
-            runOnUiThread {
-                transactions.clear()
-                transactions.addAll(all)
-                adapter?.notifyDataSetChanged()
-                updateSummary()
-            }
-        }
-    }
-
-    private fun updateSummary() {
-        totalTransactionsTv.text = transactions.size.toString()
-        totalAmountTv.text = "₹${String.format("%.2f", transactions.sumOf { it.amount })}"
+    override fun onResume() {
+        super.onResume()
+        // Refresh shop name from profile
+        val profilePrefs = getSharedPreferences("ProfilePrefs", Context.MODE_PRIVATE)
+        currentShopName = profilePrefs.getString("shopName", "Gramakhata") ?: "Gramakhata"
+        findViewById<TextView>(R.id.shopNameSubtitle).text = "Shop: $currentShopName"
     }
 }

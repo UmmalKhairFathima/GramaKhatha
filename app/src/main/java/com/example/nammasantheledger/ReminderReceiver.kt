@@ -38,7 +38,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("📒 Namma Santhe Ledger")
+            .setContentTitle("📒 Gramakhata")
             .setContentText("Don't forget to record today's transactions!")
             .setStyle(NotificationCompat.BigTextStyle()
                 .bigText("Tap to open your ledger and record today's transactions before you forget!"))
