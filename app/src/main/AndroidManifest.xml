@@ -31,7 +31,7 @@
         <activity android:name=".LoginActivity" android:exported="false"/>
         <activity android:name=".MainActivity" android:exported="false"/>
         <activity android:name=".ProfileActivity" android:exported="false" android:label="Shop Profile"/>
-        <activity android:name=".SettingsActivity" android:exported="false" android:label="Settings"/>
+        <activity android:name=".SettingsActivity" android:exported="false" android:label="Setting"/>
 
         <receiver android:name=".ReminderReceiver" android:exported="false"/>
 
