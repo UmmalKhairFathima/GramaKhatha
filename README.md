@@ -66,4 +66,4 @@ This project helps small businesses maintain transaction records digitally inste
 
 ## Author
 
-Developed by Arshid
+Developed by Ummal
