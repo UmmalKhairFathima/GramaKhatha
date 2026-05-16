@@ -80,16 +80,16 @@ git clone https://github.com/UmmalKhairFathima/GramaKhatha.git
 ## Screenshots
 
 ### Splash Screen
-![Splash Screen](screenshots/splashpage.png)
+![Splash Screen](screenshots/splashpage.png.jpeg)
 
 ### Main Page
-![Main Page](screenshots/mainpage.png)
+![Main Page](screenshots/mainpage.png.jpeg)
 
 ### Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](screenshots/dashboard.png.jpeg)
 
 ### Settings
-![Settings](screenshots/settings.png)
+![Settings](screenshots/settings.png.jpeg)
 ## Author
 
 Developed by Ummal
