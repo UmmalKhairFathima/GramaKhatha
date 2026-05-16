@@ -63,6 +63,20 @@ This project helps small businesses maintain transaction records digitally inste
 * Search and Filter Options
 * Dark Mode
 * Multi-language Support
+  
+## Installation & Setup
+
+1. Clone the repository
+
+git clone https://github.com/UmmalKhairFathima/GramaKhatha.git
+
+2. Open project in Android Studio
+
+3. Sync Gradle files
+
+4. Connect Android device or emulator
+
+5. Run the application
 
 ## Author
 
