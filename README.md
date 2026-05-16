@@ -77,7 +77,19 @@ git clone https://github.com/UmmalKhairFathima/GramaKhatha.git
 4. Connect Android device or emulator
 
 5. Run the application
+## Screenshots
 
+### Splash Screen
+![Splash Screen](screenshots/splashpage.png)
+
+### Main Page
+![Main Page](screenshots/mainpage.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Settings
+![Settings](screenshots/settings.png)
 ## Author
 
 Developed by Ummal
